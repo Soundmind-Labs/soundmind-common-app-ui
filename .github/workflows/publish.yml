@@ -1,0 +1,38 @@
+name: Publish Library to NPM
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 소스 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 2. Node.js 20 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 3. 의존성 패키지 설치
+        run: npm install
+
+      - name: 4. 테스트 실행 (Jest)
+        run: npm test
+
+      - name: 5. 라이브러리 빌드 (Bob Build)
+        run: npm run prepare
+
+      - name: 6. NPM에 배포하기
+        # 오직 main 브랜치에 push 되었을 때만 배포합니다 (PR에서는 배포 안 함)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
