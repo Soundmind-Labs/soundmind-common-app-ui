@@ -1,38 +1,55 @@
-name: Publish Library to NPM
+name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: ['main']
   pull_request:
-    branches:
-      - main
+    branches: ['main']
+  release:
+    types: [published]
 
 jobs:
-  build-and-test:
+  # [테스트 작업]은 그대로 유지
+  test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. 소스 코드 가져오기
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install --legacy-peer-deps
+      - run: npm test
+      - run: npm run prepare
 
-      - name: 2. Node.js 20 설치
-        uses: actions/setup-node@v4
+  # [배포 작업] - 여기가 바뀝니다!
+  publish-package:
+    needs: test-and-build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: 3. 의존성 패키지 설치
-        run: npm install
+      - name: 의존성 설치
+        run: npm install --legacy-peer-deps
 
-      - name: 4. 테스트 실행 (Jest)
-        run: npm test
+      # 👇 [핵심] 태그 이름(v1.0.0)에서 'v'를 떼고 버전 숫자만 추출
+      - name: 릴리즈 버전 추출
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: 5. 라이브러리 빌드 (Bob Build)
+      # 👇 [핵심] 추출한 버전으로 package.json 강제 수정 (git 태그 생성 없이 파일만 수정)
+      - name: package.json 버전 업데이트
+        run: npm version ${{ env.VERSION }} --no-git-tag-version
+
+      - name: 라이브러리 빌드 (업데이트된 버전으로 빌드됨)
         run: npm run prepare
 
-      - name: 6. NPM에 배포하기
-        # 오직 main 브랜치에 push 되었을 때만 배포합니다 (PR에서는 배포 안 함)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: NPM 배포
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
