@@ -1,6 +1,6 @@
 {
   "name": "react-native-soundmind-app-common-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "react-native common app ui for soundmind co",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
