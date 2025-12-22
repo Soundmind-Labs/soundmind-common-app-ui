@@ -55,4 +55,4 @@ jobs:
         run: npm run prepare
 
       - name: NPM 배포
-        run: npm publish
+        run: npm publish --provenance
