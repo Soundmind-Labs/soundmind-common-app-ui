@@ -8,6 +8,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
+
 jobs:
   # [테스트 작업]은 그대로 유지
   test-and-build:
@@ -51,5 +55,3 @@ jobs:
 
       - name: NPM 배포
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
